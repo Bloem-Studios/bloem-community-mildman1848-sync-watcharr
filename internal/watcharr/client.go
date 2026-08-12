@@ -245,7 +245,8 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any, o
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", c.userAgent)
 	if authenticated {
-		req.Header.Set("Authorization", "Bearer "+c.token)
+		// Watcharr expects the raw JWT in Authorization, not a Bearer-prefixed value.
+		req.Header.Set("Authorization", c.token)
 	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")

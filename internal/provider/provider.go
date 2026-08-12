@@ -43,7 +43,7 @@ func (p *WatcharrProvider) ExchangeAPIKey(ctx context.Context, req *pluginv1.Wat
 		return &pluginv1.WatchSyncCredentialResponse{Fault: ferr}, nil
 	}
 	return &pluginv1.WatchSyncCredentialResponse{
-		Credentials: &pluginv1.WatchSyncCredentials{AccessToken: token, TokenType: "Bearer"},
+		Credentials: &pluginv1.WatchSyncCredentials{AccessToken: token, TokenType: "WatcharrJWT"},
 		Account:     account,
 	}, nil
 }
@@ -51,7 +51,7 @@ func (p *WatcharrProvider) ExchangeAPIKey(ctx context.Context, req *pluginv1.Wat
 func (p *WatcharrProvider) RefreshCredentials(_ context.Context, req *pluginv1.WatchSyncRefreshCredentialsRequest) (*pluginv1.WatchSyncCredentialResponse, error) {
 	creds := req.GetContext().GetCredentials()
 	if strings.TrimSpace(creds.GetAccessToken()) == "" {
-		return &pluginv1.WatchSyncCredentialResponse{Fault: fault(pluginv1.WatchSyncFaultCode_WATCH_SYNC_FAULT_CODE_INVALID_CREDENTIAL, "Watcharr bearer token is missing")}, nil
+		return &pluginv1.WatchSyncCredentialResponse{Fault: fault(pluginv1.WatchSyncFaultCode_WATCH_SYNC_FAULT_CODE_INVALID_CREDENTIAL, "Watcharr JWT is missing")}, nil
 	}
 	return &pluginv1.WatchSyncCredentialResponse{Credentials: creds}, nil
 }
