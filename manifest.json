@@ -1,6 +1,6 @@
 {
   "plugin_id": "mildman1848.watcharr",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "checksum": "__CHECKSUM__",
   "silo_api_version": "v1",
   "category": "Sync/Watch Providers",
@@ -56,28 +56,28 @@
           "watcharr"
         ],
         "max_batch_size": 50
-      },
-      "config_schema": [
-        {
-          "key": "connection",
-          "title": "Watcharr Base URL",
-          "description": "Base URL of the Watcharr instance, e.g. https://watcharr.example.test",
-          "required": true,
-          "json_schema": "{\"type\":\"object\",\"properties\":{\"base_url\":{\"type\":\"string\",\"format\":\"uri\",\"minLength\":1}},\"required\":[\"base_url\"]}",
-          "admin_form": {
-            "fields": [
-              {
-                "key": "base_url",
-                "label": "Watcharr Base URL",
-                "control": "ADMIN_FORM_CONTROL_TEXT",
-                "placeholder": "https://watcharr.example.test",
-                "required": true
-              }
-            ]
-          }
-        }
-      ]
+      }
     }
   ],
-  "global_config_schema": []
+  "global_config_schema": [
+    {
+      "key": "connection",
+      "title": "Watcharr Connection",
+      "description": "Base URL of the Watcharr instance used by this watch-sync provider.",
+      "required": true,
+      "json_schema": "{\"type\":\"object\",\"properties\":{\"base_url\":{\"type\":\"string\",\"format\":\"uri\",\"minLength\":1}},\"required\":[\"base_url\"]}",
+      "admin_form": {
+        "fields": [
+          {
+            "key": "base_url",
+            "label": "Watcharr Base URL",
+            "control": "ADMIN_FORM_CONTROL_TEXT",
+            "placeholder": "https://watcharr.example.test",
+            "required": true
+          }
+        ],
+        "submit_label": "Save Watcharr settings"
+      }
+    }
+  ]
 }

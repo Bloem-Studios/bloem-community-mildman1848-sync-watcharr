@@ -205,11 +205,23 @@ func clientFromConfig(cfg *pluginv1.WatchSyncProviderConfig, token string) (*wat
 	if cfg == nil {
 		return nil, errors.New("missing provider config")
 	}
-	baseURL := strings.TrimSpace(cfg.GetValues()["base_url"])
-	if baseURL == "" {
-		baseURL = strings.TrimSpace(cfg.GetSecretValues()["base_url"])
-	}
+	baseURL := firstConfigValue(cfg,
+		"connection.base_url",
+		"base_url",
+	)
 	return watcharr.New(baseURL, token)
+}
+
+func firstConfigValue(cfg *pluginv1.WatchSyncProviderConfig, keys ...string) string {
+	for _, key := range keys {
+		if value := strings.TrimSpace(cfg.GetValues()[key]); value != "" {
+			return value
+		}
+		if value := strings.TrimSpace(cfg.GetSecretValues()[key]); value != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func accountFromClient(ctx context.Context, client *watcharr.Client) (*pluginv1.WatchSyncAccount, *pluginv1.WatchSyncFault) {
