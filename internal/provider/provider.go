@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -17,7 +18,7 @@ type WatcharrProvider struct {
 }
 
 func (p *WatcharrProvider) InitAuthorize(context.Context, *pluginv1.WatchSyncInitAuthorizeRequest) (*pluginv1.WatchSyncInitAuthorizeResponse, error) {
-	return &pluginv1.WatchSyncInitAuthorizeResponse{Fault: fault(pluginv1.WatchSyncFaultCode_WATCH_SYNC_FAULT_CODE_INVALID_REQUEST, "Watcharr uses API-key/bearer-token authentication for this plugin")}, nil
+	return &pluginv1.WatchSyncInitAuthorizeResponse{Fault: fault(pluginv1.WatchSyncFaultCode_WATCH_SYNC_FAULT_CODE_INVALID_REQUEST, "Watcharr uses manual login credentials for this plugin")}, nil
 }
 
 func (p *WatcharrProvider) ExchangeCode(context.Context, *pluginv1.WatchSyncExchangeCodeRequest) (*pluginv1.WatchSyncCredentialResponse, error) {
@@ -25,7 +26,15 @@ func (p *WatcharrProvider) ExchangeCode(context.Context, *pluginv1.WatchSyncExch
 }
 
 func (p *WatcharrProvider) ExchangeAPIKey(ctx context.Context, req *pluginv1.WatchSyncExchangeAPIKeyRequest) (*pluginv1.WatchSyncCredentialResponse, error) {
-	client, err := clientFromConfig(req.GetProviderConfig(), req.GetApiKey())
+	baseURL, err := baseURLFromConfig(req.GetProviderConfig())
+	if err != nil {
+		return &pluginv1.WatchSyncCredentialResponse{Fault: fault(pluginv1.WatchSyncFaultCode_WATCH_SYNC_FAULT_CODE_INVALID_REQUEST, err.Error())}, nil
+	}
+	token, err := tokenFromLoginSecret(ctx, baseURL, req.GetApiKey())
+	if err != nil {
+		return &pluginv1.WatchSyncCredentialResponse{Fault: fault(pluginv1.WatchSyncFaultCode_WATCH_SYNC_FAULT_CODE_INVALID_CREDENTIAL, err.Error())}, nil
+	}
+	client, err := watcharr.New(baseURL, token)
 	if err != nil {
 		return &pluginv1.WatchSyncCredentialResponse{Fault: fault(pluginv1.WatchSyncFaultCode_WATCH_SYNC_FAULT_CODE_INVALID_REQUEST, err.Error())}, nil
 	}
@@ -34,7 +43,7 @@ func (p *WatcharrProvider) ExchangeAPIKey(ctx context.Context, req *pluginv1.Wat
 		return &pluginv1.WatchSyncCredentialResponse{Fault: ferr}, nil
 	}
 	return &pluginv1.WatchSyncCredentialResponse{
-		Credentials: &pluginv1.WatchSyncCredentials{AccessToken: strings.TrimSpace(req.GetApiKey()), TokenType: "Bearer"},
+		Credentials: &pluginv1.WatchSyncCredentials{AccessToken: token, TokenType: "Bearer"},
 		Account:     account,
 	}, nil
 }
@@ -202,14 +211,56 @@ func clientFromAuthContext(ctx *pluginv1.WatchSyncAuthenticatedContext) (*watcha
 }
 
 func clientFromConfig(cfg *pluginv1.WatchSyncProviderConfig, token string) (*watcharr.Client, error) {
+	baseURL, err := baseURLFromConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return watcharr.New(baseURL, token)
+}
+
+func baseURLFromConfig(cfg *pluginv1.WatchSyncProviderConfig) (string, error) {
 	if cfg == nil {
-		return nil, errors.New("missing provider config")
+		return "", errors.New("missing provider config")
 	}
 	baseURL := firstConfigValue(cfg,
 		"connection.base_url",
 		"base_url",
 	)
-	return watcharr.New(baseURL, token)
+	if strings.TrimSpace(baseURL) == "" {
+		return "", errors.New("watcharr base_url is required")
+	}
+	return baseURL, nil
+}
+
+type loginSecret struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Token    string `json:"token"`
+}
+
+func tokenFromLoginSecret(ctx context.Context, baseURL, value string) (string, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return "", errors.New("Watcharr login secret is required")
+	}
+	if strings.HasPrefix(value, "eyJ") {
+		return value, nil
+	}
+	if strings.HasPrefix(value, "{") {
+		var secret loginSecret
+		if err := json.Unmarshal([]byte(value), &secret); err != nil {
+			return "", errors.New("Watcharr login secret JSON is invalid")
+		}
+		if strings.TrimSpace(secret.Token) != "" {
+			return strings.TrimSpace(secret.Token), nil
+		}
+		return watcharr.Login(ctx, baseURL, secret.Username, secret.Password)
+	}
+	username, password, ok := strings.Cut(value, ":")
+	if !ok {
+		return "", errors.New("enter Watcharr credentials as username:password, JSON {\"username\":...,\"password\":...}, or an existing JWT")
+	}
+	return watcharr.Login(ctx, baseURL, username, password)
 }
 
 func firstConfigValue(cfg *pluginv1.WatchSyncProviderConfig, keys ...string) string {

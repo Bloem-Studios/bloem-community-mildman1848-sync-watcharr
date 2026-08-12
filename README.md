@@ -41,9 +41,13 @@ Capability config:
 
 Connection credential:
 
-- API key field: Watcharr bearer token/JWT.
+Watcharr does not currently expose a long-lived API key generator in the web UI. Silo's watch-sync host offers an `API key` connection flow, so this plugin treats that input as a one-time Watcharr login secret. Accepted values:
 
-The plugin never persists or logs credentials. Silo owns encrypted credential storage.
+- `username:password`
+- JSON: `{ "username": "philipp", "password": "..." }`
+- an existing Watcharr JWT copied from browser devtools/localStorage
+
+The plugin exchanges username/password with `POST /api/auth/` and returns Watcharr's bearer/JWT token to Silo. Silo owns encrypted credential storage. The plugin never logs credentials.
 
 ## Development
 

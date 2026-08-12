@@ -34,24 +34,65 @@ func WithHTTPClient(client *http.Client) Option {
 }
 
 func New(baseURL, token string, opts ...Option) (*Client, error) {
-	baseURL = strings.TrimSpace(baseURL)
-	token = strings.TrimSpace(token)
-	if baseURL == "" {
-		return nil, errors.New("watcharr base_url is required")
+	u, err := parseBaseURL(baseURL)
+	if err != nil {
+		return nil, err
 	}
+	token = strings.TrimSpace(token)
 	if token == "" {
 		return nil, errors.New("watcharr bearer token is required")
+	}
+	c := &Client{baseURL: u, token: token, httpClient: http.DefaultClient, userAgent: defaultUserAgent}
+	for _, opt := range opts {
+		opt(c)
+	}
+	return c, nil
+}
+
+func parseBaseURL(baseURL string) (*url.URL, error) {
+	baseURL = strings.TrimSpace(baseURL)
+	if baseURL == "" {
+		return nil, errors.New("watcharr base_url is required")
 	}
 	u, err := url.Parse(baseURL)
 	if err != nil || u.Scheme == "" || u.Host == "" {
 		return nil, fmt.Errorf("invalid watcharr base_url %q", baseURL)
 	}
 	u.Path = strings.TrimRight(u.Path, "/")
-	c := &Client{baseURL: u, token: token, httpClient: http.DefaultClient, userAgent: defaultUserAgent}
+	return u, nil
+}
+
+type LoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type LoginResponse struct {
+	Token string `json:"token"`
+}
+
+func Login(ctx context.Context, baseURL, username, password string, opts ...Option) (string, error) {
+	u, err := parseBaseURL(baseURL)
+	if err != nil {
+		return "", err
+	}
+	username = strings.TrimSpace(username)
+	if username == "" || password == "" {
+		return "", errors.New("watcharr username and password are required")
+	}
+	c := &Client{baseURL: u, httpClient: http.DefaultClient, userAgent: defaultUserAgent}
 	for _, opt := range opts {
 		opt(c)
 	}
-	return c, nil
+	var out LoginResponse
+	if err := c.doUnauthenticated(ctx, http.MethodPost, "/api/auth/", LoginRequest{Username: username, Password: password}, &out); err != nil {
+		return "", err
+	}
+	token := strings.TrimSpace(out.Token)
+	if token == "" {
+		return "", errors.New("watcharr login response did not include a token")
+	}
+	return token, nil
 }
 
 type MediaIDs struct {
@@ -176,6 +217,14 @@ func (c *Client) DeleteEpisode(ctx context.Context, episodeID int) error {
 }
 
 func (c *Client) do(ctx context.Context, method, path string, body any, out any) error {
+	return c.doRequest(ctx, method, path, body, out, true)
+}
+
+func (c *Client) doUnauthenticated(ctx context.Context, method, path string, body any, out any) error {
+	return c.doRequest(ctx, method, path, body, out, false)
+}
+
+func (c *Client) doRequest(ctx context.Context, method, path string, body any, out any, authenticated bool) error {
 	endpoint := c.baseURL.ResolveReference(&url.URL{Path: strings.TrimRight(c.baseURL.Path, "/") + path})
 	if strings.Contains(path, "?") {
 		parts := strings.SplitN(path, "?", 2)
@@ -195,7 +244,9 @@ func (c *Client) do(ctx context.Context, method, path string, body any, out any)
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", c.userAgent)
-	req.Header.Set("Authorization", "Bearer "+c.token)
+	if authenticated {
+		req.Header.Set("Authorization", "Bearer "+c.token)
+	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
