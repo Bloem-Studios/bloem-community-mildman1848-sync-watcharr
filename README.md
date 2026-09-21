@@ -1,3 +1,12 @@
+## Bloem community build
+
+This is Bloem's community build of [mildman1848/silo-plugin-sync-watcharr](https://github.com/mildman1848/silo-plugin-sync-watcharr) by **mildman1848**
+(contributors: mildman1848). It is ported to the Bloem plugin SDK and listed in the
+Bloem community plugin catalog. All credit for the plugin goes to its author; please
+report plugin behavior issues upstream. See [NOTICE](NOTICE) for provenance.
+
+---
+
 # silo-plugin-sync-watcharr
 
 Silo `watch_sync_provider.v1` plugin for two-way watched-state sync between Silo and [Watcharr](https://github.com/sbondCo/Watcharr).

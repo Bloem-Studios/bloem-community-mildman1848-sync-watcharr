@@ -1,5 +1,5 @@
-github.com/Silo-Server/silo-plugin-sdk v0.13.3-0.20260811193700-636acff04b36 h1:iy4cm5K73DDw2gISpJC6ZtaRoM4W7j42XwO0HFCNgLE=
-github.com/Silo-Server/silo-plugin-sdk v0.13.3-0.20260811193700-636acff04b36/go.mod h1:/domJOMLx2jgSTD9cBEFWtGdWq/AAUEOWxkQLz1gJLE=
+github.com/Bloem-Studios/bloem-plugin-sdk v0.16.1 h1:Q+ZM94YIt5M6Lu6jjvG4y/NNmE14ZjQ+gm6vDRLv2hw=
+github.com/Bloem-Studios/bloem-plugin-sdk v0.16.1/go.mod h1:9aaUMnMhdgipSk4eitnnfk1cM3vYYoEKfjSk0qQk3sg=
 github.com/bufbuild/protocompile v0.14.1 h1:iA73zAf/fyljNjQKwYzUHD6AD4R8KMasmwa/FBatYVw=
 github.com/bufbuild/protocompile v0.14.1/go.mod h1:ppVdAIhbr2H8asPk6k4pY7t9zB1OU5DoEw9xY/FUi1c=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
